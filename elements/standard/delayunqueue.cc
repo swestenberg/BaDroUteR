@@ -20,6 +20,7 @@
 #include <iostream>
 #include <string>
 #include <ctime>
+#include <random>
 
 #include <click/config.h>
 #include <click/error.hh>
@@ -43,7 +44,7 @@ DelayUnqueue::configure(Vector<String> &conf, ErrorHandler *errh)
 	String config_path = "/home/sam/18845/badrouter/badrouter_configuration/config.txt";
 	
 	// This will be the delay
-	int x;
+	double x;
 	// This will be the standard deviation
 	double y;
 
@@ -105,8 +106,12 @@ DelayUnqueue::run_task(Task *)
     bool worked = false;
 	String config_path = "/home/sam/18845/badrouter/badrouter_configuration/config.txt";
     int x, y;
+	static std::default_random_engine generator(time(0));
+	std::normal_distribution<double> distribution(3, _stddev);
 
   retry:
+    
+    // std::cout << "Just entered retry" << std::endl;
 
   	this_time = std::clock();
 
@@ -128,6 +133,7 @@ DelayUnqueue::run_task(Task *)
 
 		_delay = Timestamp(x);
 		_stddev = y;
+		std::normal_distribution<double> distribution(5, _stddev);
 
 		inFile.close();
 
@@ -136,13 +142,25 @@ DelayUnqueue::run_task(Task *)
 
   	// Get a new packet and set a timestamp delay seconds from now.
     if (!_p && (_p = input(0).pull())) {
+
+    	std::cout << "Just got a new packet!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+
 		if (!_p->timestamp_anno().sec()) { // get timestamp if not set 
 	    	_p->timestamp_anno().assign_now();
 	    }
-		_p->timestamp_anno() += _delay;
+
+	    double sample = distribution(generator);
+
+	    std::cout << sample << std::endl;
+		_p->timestamp_anno() += Timestamp(sample);
+
+		// at this point put the packet in our buffer
     }
 
-    // For our current packet, check its timestamp and send it if it's ready to go.
+    // Instead of doing if(_P) we should do if(buffer not empty) and then perform this operation
+    // for every element in the buffer
+
+    // instead of goto retry when we push something, goto retry 
     if (_p) {
 
 		Timestamp now = Timestamp::now();
@@ -155,7 +173,13 @@ DelayUnqueue::run_task(Task *)
 	    	goto retry;
 		}
 
-		// No clue what this shit is doing
+		// This section coordinates sending the packet at the scheduled time.
+		// If the packet is to be sent very soon (within one Timer::adjustment) 
+		// then we just reschedule our task (poll the CPU) until it's time to send.
+
+		// If the delta is large, we set a timer to wake the task up closer to 
+		// the scheduled send time.
+
 		Timestamp expiry = _p->timestamp_anno() - Timer::adjustment();
 		if (expiry <= now)
 	    // small delta, reschedule Task

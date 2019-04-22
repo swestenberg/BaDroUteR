@@ -24,14 +24,13 @@ FromDevice($DEV, SNIFFER false)
 	-> CheckIPHeader(14)
 	-> ip :: IPClassifier(icmp echo-reply)
 	-> p :: Queue()
-	-> DelayUnqueue(DELAY 3, STDDEV 0.9)
+	-> DelayUnqueue(DELAY 5, STDDEV 0.5)
 	-> ping :: ICMPPingSource($DEV, $DADDR, INTERVAL $INTERVAL,
 				  LIMIT $LIMIT, STOP true)
 	-> SetIPAddress($GW)
 	-> arpq :: ARPQuerier($DEV)
 	-> IPPrint
 	-> q :: Queue()
-	-> DelayShaper(0.1)
 	//-> Discard;	
 -> ToDevice($DEV);
 
