@@ -31,6 +31,7 @@ Return or set the DELAY parameter.
 
 =a Queue, Unqueue, RatedUnqueue, BandwidthRatedUnqueue, LinkUnqueue,
 DelayShaper, SetTimestamp */
+#include <ctime>
 
 class DelayUnqueue : public Element { public:
 
@@ -49,8 +50,15 @@ class DelayUnqueue : public Element { public:
 
   private:
 
+    clock_t this_time = std::clock();
+    clock_t last_time = this_time;
+
     Packet *_p;
     Timestamp _delay;
+    double _stddev;
+    String _delay_string;
+    String _stddev_string;
+    String _config_path;
     Task _task;
     Timer _timer;
     NotifierSignal _signal;

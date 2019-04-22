@@ -16,12 +16,18 @@
  * legally binding.
  */
 
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <ctime>
+
 #include <click/config.h>
 #include <click/error.hh>
 #include <click/args.hh>
 #include <click/glue.hh>
 #include "delayunqueue.hh"
 #include <click/standard/scheduleinfo.hh>
+
 CLICK_DECLS
 
 DelayUnqueue::DelayUnqueue()
@@ -32,7 +38,49 @@ DelayUnqueue::DelayUnqueue()
 int
 DelayUnqueue::configure(Vector<String> &conf, ErrorHandler *errh)
 {
-    return Args(conf, this, errh).read_mp("DELAY", _delay).complete();
+	
+	std::cout << "Hello, world, from the delayunqueue" << std::endl;
+	String config_path = "/home/sam/18845/badrouter/badrouter_configuration/config.txt";
+	
+	// This will be the delay
+	int x;
+	// This will be the standard deviation
+	double y;
+
+	// for (Vector<String>::iterator i = conf.begin(); i != conf.end(); ++i) {
+	// 	std::cout << (*i).data() << std::endl;
+	// 	std::cout << "Let's gooooo" << std::endl;
+	// 	// config_path = pwd + *i;
+	// 	// std::cout << config_path << std::endl;
+	// }
+
+	// for (int i = 0; i < conf.size(); ++i) {
+	// 	std::cout << conf[i].data() << std::endl;
+	// }
+
+	int i = Args(conf, this, errh).read("DELAY", _delay).read("STDDEV", _stddev).complete();
+	// std::cout << "result of Args" << i << std::endl;
+	if (_stddev == 0) {
+		std::cout << "No arguments passed in through configuration, using config.txt" << std::endl;
+		
+		std::ifstream inFile;
+		const char *c = config_path.c_str();
+		inFile.open(c);
+		if (!inFile) {
+			std::cerr << "Something's fucked, boys";
+			exit(1);
+		}
+
+		inFile >> x;
+		inFile >> y;
+		_delay = Timestamp(x);
+		_stddev = y;
+	}
+
+	std::cout << "Delay: " << _delay << std::endl;
+	std::cout << "STDDEV: " << _stddev << std::endl;
+    // return Args(conf, this, errh).read("DELAY", _delay).read("STDDEV", _stddev).read("CONFIG", _config_path).complete();
+	return 1;
 }
 
 int
@@ -55,38 +103,73 @@ bool
 DelayUnqueue::run_task(Task *)
 {
     bool worked = false;
+	String config_path = "/home/sam/18845/badrouter/badrouter_configuration/config.txt";
+    int x, y;
 
   retry:
-    // read a packet
+
+  	this_time = std::clock();
+
+  	// Contrary to official documention of std::clock, this difference appears to be in milliseconds
+  	// and not in clock cycles.
+  	if ((double)(this_time - last_time) > (3000)) {
+  		// Time to check for new parameters
+  		std::cout << "Checking for new parameters" << std::endl;
+		std::ifstream inFile;
+		const char *c = config_path.c_str();
+		inFile.open(c);
+		if (!inFile) {
+			std::cerr << "Something's fucked, boys";
+			exit(1);
+		}
+		
+		inFile >> x;
+		inFile >> y;
+
+		_delay = Timestamp(x);
+		_stddev = y;
+
+		inFile.close();
+
+  		last_time = this_time; 
+  	}
+
+  	// Get a new packet and set a timestamp delay seconds from now.
     if (!_p && (_p = input(0).pull())) {
-	if (!_p->timestamp_anno().sec()) // get timestamp if not set
-	    _p->timestamp_anno().assign_now();
-	_p->timestamp_anno() += _delay;
+		if (!_p->timestamp_anno().sec()) { // get timestamp if not set 
+	    	_p->timestamp_anno().assign_now();
+	    }
+		_p->timestamp_anno() += _delay;
     }
 
+    // For our current packet, check its timestamp and send it if it's ready to go.
     if (_p) {
-	Timestamp now = Timestamp::now();
-	if (_p->timestamp_anno() <= now) {
-	    // packet ready for output
-	    output(0).push(_p);
-	    _p = 0;
-	    worked = true;
-	    goto retry;
-	}
 
-	Timestamp expiry = _p->timestamp_anno() - Timer::adjustment();
-	if (expiry <= now)
+		Timestamp now = Timestamp::now();
+
+		if (_p->timestamp_anno() <= now) {
+	    	// packet ready for output
+	    	output(0).push(_p);
+	    	_p = 0;
+	    	worked = true;
+	    	goto retry;
+		}
+
+		// No clue what this shit is doing
+		Timestamp expiry = _p->timestamp_anno() - Timer::adjustment();
+		if (expiry <= now)
 	    // small delta, reschedule Task
 	    /* Task rescheduled below */;
-	else {
+		else {
 	    // large delta, schedule Timer
-	    _timer.schedule_at(expiry);
-	    return false;		// without rescheduling
-	}
+	    	_timer.schedule_at(expiry);
+	    	return false;		// without rescheduling
+		}
     } else {
 	// no Packet available
-	if (!_signal)
-	    return false;		// without rescheduling
+		if (!_signal) {
+	 	   return false;		// without rescheduling
+		}
     }
 
     _task.fast_reschedule();
@@ -96,7 +179,8 @@ DelayUnqueue::run_task(Task *)
 void
 DelayUnqueue::add_handlers()
 {
-    add_data_handlers("delay", Handler::OP_READ | Handler::OP_WRITE, &_delay, true);
+    add_data_handlers("DELAY", Handler::OP_READ | Handler::OP_WRITE, &_delay, true);
+    // add_data_handlers("STDDEV", Handler::OP_READ | Handler::OP_WRITE, &_stddev, true);
     add_task_handlers(&_task);
 }
 

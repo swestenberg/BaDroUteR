@@ -23,6 +23,8 @@ FromDevice($DEV, SNIFFER false)
 	-> c :: Classifier(12/0800, 12/0806 20/0002)
 	-> CheckIPHeader(14)
 	-> ip :: IPClassifier(icmp echo-reply)
+	-> p :: Queue()
+	-> DelayUnqueue(DELAY 3, STDDEV 0.9)
 	-> ping :: ICMPPingSource($DEV, $DADDR, INTERVAL $INTERVAL,
 				  LIMIT $LIMIT, STOP true)
 	-> SetIPAddress($GW)
@@ -30,8 +32,8 @@ FromDevice($DEV, SNIFFER false)
 	-> IPPrint
 	-> q :: Queue()
 	-> DelayShaper(0.1)
-	-> Discard;	
-//-> ToDevice($DEV);
+	//-> Discard;	
+-> ToDevice($DEV);
 
 arpq[1]	-> q;
 
