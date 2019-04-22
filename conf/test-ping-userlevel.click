@@ -24,7 +24,7 @@ FromDevice($DEV, SNIFFER false)
 	-> CheckIPHeader(14)
 	-> ip :: IPClassifier(icmp echo-reply)
 	-> p :: Queue()
-	-> DelayUnqueue(DELAY 5, STDDEV 0.5)
+	-> BadrouterDelay(DELAY 5, STDDEV 0.5)
 	-> ping :: ICMPPingSource($DEV, $DADDR, INTERVAL $INTERVAL,
 				  LIMIT $LIMIT, STOP true)
 	-> SetIPAddress($GW)
