@@ -23,16 +23,14 @@ FromDevice($DEV, SNIFFER false)
 	-> c :: Classifier(12/0800, 12/0806 20/0002)
 	-> CheckIPHeader(14)
 	-> ip :: IPClassifier(icmp echo-reply)
-	-> p :: Queue()
-	-> BadrouterDelay(DELAY 5, STDDEV 0.5)
-	-> c1 :: Counter()
+  -> q1 :: Queue()
+	-> BadrouterDuplicate(PROB 0.5)
 	-> ping :: ICMPPingSource($DEV, $DADDR, INTERVAL $INTERVAL,
 				  LIMIT $LIMIT, STOP true)
 	-> SetIPAddress($GW)
 	-> arpq :: ARPQuerier($DEV)
 	-> IPPrint
 	-> q :: Queue()
-	//-> Discard;	
 -> ToDevice($DEV);
 
 arpq[1]	-> q;
