@@ -41,7 +41,7 @@ BadrouterDelay::configure(Vector<String> &conf, ErrorHandler *errh)
 {
 	
 	std::cout << "Hello, world, from the BadrouterDelay" << std::endl;
-	String config_path = "/home/sam/18845/badrouter/badrouter_configuration/config.txt";
+	String config_path = "~/badrouter_configuration/config.txt";
 	
 	// This will be the delay
 	double x;
@@ -104,10 +104,10 @@ bool
 BadrouterDelay::run_task(Task *)
 {
     bool worked = false;
-	String config_path = "/home/sam/18845/badrouter/badrouter_configuration/config.txt";
+	String config_path = "~/badrouter_configuration/config.txt";
     int x, y;
 	static std::default_random_engine generator(time(0));
-	std::normal_distribution<double> distribution(3, _stddev);
+	std::normal_distribution<double> distribution(0, _stddev);
 
   retry:
     
@@ -117,7 +117,7 @@ BadrouterDelay::run_task(Task *)
 
   	// Contrary to official documention of std::clock, this difference appears to be in milliseconds
   	// and not in clock cycles.
-  	if ((double)(this_time - last_time) > (3000)) {
+  	if (false){ //(double)(this_time - last_time) > (3000)) {
   		// Time to check for new parameters
   		std::cout << "Checking for new parameters" << std::endl;
 		std::ifstream inFile;
@@ -133,7 +133,7 @@ BadrouterDelay::run_task(Task *)
 
 		_delay = Timestamp(x);
 		_stddev = y;
-		std::normal_distribution<double> distribution(5, _stddev);
+		std::normal_distribution<double> distribution(0, _stddev);
 
 		inFile.close();
 
@@ -151,7 +151,7 @@ BadrouterDelay::run_task(Task *)
 
 	    double sample = distribution(generator);
 
-	    std::cout << sample << std::endl;
+	    //std::cout << sample << std::endl;
 		_p->timestamp_anno() += Timestamp(sample);
 
 		// at this point put the packet in our buffer
