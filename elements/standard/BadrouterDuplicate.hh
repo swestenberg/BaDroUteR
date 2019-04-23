@@ -53,7 +53,7 @@ class BadrouterDuplicate : public Element { public:
     clock_t this_time = std::clock();
     clock_t last_time = this_time;
 
-    double _duplicate_prob = 0.01;
+    double _duplicate_pct = 1;
     Packet *_p;
     Task _task;
     NotifierSignal _signal;

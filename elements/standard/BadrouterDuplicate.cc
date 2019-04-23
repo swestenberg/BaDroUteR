@@ -39,7 +39,10 @@ BadrouterDuplicate::BadrouterDuplicate()
 int
 BadrouterDuplicate::configure(Vector<String> &conf, ErrorHandler *errh)
 {
-	return Args(conf, this, errh).read("PROB", _duplicate_prob).complete();
+  double duplicate_prob = 0;
+  int i = Args(conf, this, errh).read("PROB", duplicate_prob).complete();
+  _duplicate_pct = duplicate_prob * 100;
+  return i;
 }
 
 int
@@ -62,7 +65,7 @@ BadrouterDuplicate::run_task(Task *)
   if ((_p = input(0).pull())) {
     output(0).push(_p);
 
-    if ((rand() % 100) < (_duplicate_prob * 100))
+    if ((rand() % 100) < _duplicate_pct)
       output(0).push(_p);
 
     worked = true;
