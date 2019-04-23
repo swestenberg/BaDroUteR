@@ -39,10 +39,10 @@ BadrouterDelay::BadrouterDelay()
 int
 BadrouterDelay::configure(Vector<String> &conf, ErrorHandler *errh)
 {
-	
+
 	std::cout << "Hello, world, from the BadrouterDelay" << std::endl;
 	String config_path = "~/badrouter_configuration/config.txt";
-	
+
 	// This will be the delay
 	double x;
 	// This will be the standard deviation
@@ -61,9 +61,9 @@ BadrouterDelay::configure(Vector<String> &conf, ErrorHandler *errh)
 
 	int i = Args(conf, this, errh).read("DELAY", _delay).read("STDDEV", _stddev).complete();
 	// std::cout << "result of Args" << i << std::endl;
-	if (_stddev == 0) {
+	if (_stddev == -10) {
 		std::cout << "No arguments passed in through configuration, using config.txt" << std::endl;
-		
+
 		std::ifstream inFile;
 		const char *c = config_path.c_str();
 		inFile.open(c);
@@ -110,7 +110,7 @@ BadrouterDelay::run_task(Task *)
 	std::normal_distribution<double> distribution(0, _stddev);
 
   retry:
-    
+
     // std::cout << "Just entered retry" << std::endl;
 
   	this_time = std::clock();
@@ -127,7 +127,7 @@ BadrouterDelay::run_task(Task *)
 			std::cerr << "Something's fucked, boys";
 			exit(1);
 		}
-		
+
 		inFile >> x;
 		inFile >> y;
 
@@ -137,7 +137,7 @@ BadrouterDelay::run_task(Task *)
 
 		inFile.close();
 
-  		last_time = this_time; 
+  		last_time = this_time;
   	}
 
   	// Get a new packet and set a timestamp delay seconds from now.
@@ -145,7 +145,7 @@ BadrouterDelay::run_task(Task *)
 
     	// std::cout << "Just got a new packet!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 
-		if (!_p->timestamp_anno().sec()) { // get timestamp if not set 
+		if (!_p->timestamp_anno().sec()) { // get timestamp if not set
 	    	_p->timestamp_anno().assign_now();
 	    }
 
@@ -160,7 +160,7 @@ BadrouterDelay::run_task(Task *)
     // Instead of doing if(_P) we should do if(buffer not empty) and then perform this operation
     // for every element in the buffer
 
-    // instead of goto retry when we push something, goto retry 
+    // instead of goto retry when we push something, goto retry
     if (_p) {
 
 		Timestamp now = Timestamp::now();
@@ -174,10 +174,10 @@ BadrouterDelay::run_task(Task *)
 		}
 
 		// This section coordinates sending the packet at the scheduled time.
-		// If the packet is to be sent very soon (within one Timer::adjustment) 
+		// If the packet is to be sent very soon (within one Timer::adjustment)
 		// then we just reschedule our task (poll the CPU) until it's time to send.
 
-		// If the delta is large, we set a timer to wake the task up closer to 
+		// If the delta is large, we set a timer to wake the task up closer to
 		// the scheduled send time.
 
 		Timestamp expiry = _p->timestamp_anno() - Timer::adjustment();

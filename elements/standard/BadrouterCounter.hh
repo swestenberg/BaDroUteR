@@ -1,6 +1,7 @@
 // -*- mode: c++; c-basic-offset: 4 -*-
 #ifndef BAD_ROUTER_COUNTER_HH
 #define BAD_ROUTER_COUNTER_HH
+#include <ctime>
 #include <click/element.hh>
 #include <click/ewma.hh>
 #include <click/llrpc.h>
@@ -134,6 +135,8 @@ class BadrouterCounter : public Element { public:
 #endif
 
     int _log_id;
+    long unsigned int _prev_byte_count = 0;
+    clock_t _sample_start_time;
     counter_t _count;
     counter_t _byte_count;
     rate_t _rate;

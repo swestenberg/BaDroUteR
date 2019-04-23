@@ -15,13 +15,16 @@
  * notice is a summary of the Click LICENSE file; the license in that file is
  * legally binding.
  */
+#include <ctime>
 #include <iostream>
+
 #include <click/config.h>
-#include "BadrouterCounter.hh"
 #include <click/error.hh>
 #include <click/confparse.hh>
 #include <click/args.hh>
 #include <click/handlercall.hh>
+
+#include "BadrouterCounter.hh"
 
 CLICK_DECLS
 
@@ -85,9 +88,14 @@ BadrouterCounter::simple_action(Packet *p)
       (void) _byte_trigger_h->call_write();
   }
 
-  if (_byte_count % 10000 == 0) {
-    printf("Counter %d byte count: %d\n", _log_id, _byte_count);
+  if (_byte_count % 100000 == 0) {
+    double sample_byte_rate = ((100000)
+                      / (1000*double(std::clock() - _sample_start_time)));
+    printf("Counter %d byte rate (Bps): %f\n", _log_id, sample_byte_rate);
+    _sample_start_time = std::clock();
+    _prev_byte_count = _byte_count;
   }
+
 
   return p;
 }

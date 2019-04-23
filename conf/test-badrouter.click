@@ -5,6 +5,6 @@ FastUDPSource(100000, 500000, 60, 0:0:0:0:0:0,
     -> BadrouterCounter(LOG_ID 0)
     -> DelayUnqueue(0)
     -> Queue()
-    -> BadrouterDelay(DELAY 0, STDDEV 0.5)
+    -> BadrouterDelay(DELAY 0, STDDEV 0)
     -> BadrouterCounter(LOG_ID 1)
 -> Discard;
