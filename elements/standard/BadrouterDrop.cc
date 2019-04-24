@@ -65,6 +65,8 @@ BadrouterDrop::run_task(Task *)
   if ((_p = input(0).pull())) {
     if ((rand() % 100) >= _drop_pct)
       output(0).push(_p);
+    else
+      _p->kill();
     worked = true;
   }
 
