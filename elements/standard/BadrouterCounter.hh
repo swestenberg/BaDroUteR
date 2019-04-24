@@ -4,6 +4,7 @@
 #include <ctime>
 #include <click/element.hh>
 #include <click/ewma.hh>
+#include <vector>
 #include <click/llrpc.h>
 CLICK_DECLS
 class HandlerCall;
@@ -141,6 +142,8 @@ class BadrouterCounter : public Element { public:
     counter_t _byte_count;
     rate_t _rate;
     byte_rate_t _byte_rate;
+
+    std::vector<double> _data;
 
     counter_t _count_trigger;
     HandlerCall *_count_trigger_h;

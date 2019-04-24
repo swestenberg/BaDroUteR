@@ -17,6 +17,8 @@
  */
 #include <ctime>
 #include <iostream>
+#include <fstream>
+#include <vector>
 
 #include <click/config.h>
 #include <click/error.hh>
@@ -88,14 +90,41 @@ BadrouterCounter::simple_action(Packet *p)
       (void) _byte_trigger_h->call_write();
   }
 
-  if (_byte_count % 100000 == 0) {
-    double sample_byte_rate = ((100000)
-                      / (1000*double(std::clock() - _sample_start_time)));
-    printf("Counter %d byte rate (Bps): %f\n", _log_id, sample_byte_rate);
+  long unsigned int print_count = 10000;
+
+  if (_byte_count % print_count == 0) {
+    long double elapsed = (long double)(std::clock() - _sample_start_time) / ((long double)CLOCKS_PER_SEC);
+    long double sample_byte_rate = (((long double)(print_count)) / elapsed);
+    printf("Counter %d byte rate (Bps): %Lf\n", _log_id, sample_byte_rate);
+    printf("time elapsed (seconds): %Lf\n", elapsed);
     _sample_start_time = std::clock();
     _prev_byte_count = _byte_count;
-  }
 
+    _data.push_back(sample_byte_rate);
+
+    if (_byte_count % (print_count*100) == 0) {
+      String results_counterA = "/home/sam/18845/badrouter/results_counterA.txt";
+      String results_counterB = "/home/sam/18845/badrouter/results_counterB.txt";
+
+      std::ofstream outFile;
+      const char *c;
+      if (_log_id == 0) { c = results_counterA.c_str(); }
+      else { c = results_counterB.c_str(); }
+      outFile.open(c, std::ios_base::app);
+      if (!outFile) {
+        std::cerr << "Something's fucked, boys" << std::endl;
+        exit(1);
+      }
+
+      for(double data : _data) {
+        outFile << data << std::endl;
+      }
+
+      _data.clear();
+      // outFile << elapsed << ", " << sample_byte_rate << std::endl;
+      outFile.close();
+    }
+  }
 
   return p;
 }
