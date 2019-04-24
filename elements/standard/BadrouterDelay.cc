@@ -104,44 +104,45 @@ bool
 BadrouterDelay::run_task(Task *)
 {
     bool worked = false;
-	String config_path = "~/badrouter_configuration/config.txt";
+	// String config_path = "~/badrouter_configuration/config.txt";
     int x, y;
 	static std::default_random_engine generator(time(0));
-	std::normal_distribution<double> distribution(0, _stddev);
+	std::normal_distribution<double> distribution(5, _stddev);
 
-  retry:
+  // retry:
 
     // std::cout << "Just entered retry" << std::endl;
 
   	this_time = std::clock();
 
-  	// Contrary to official documention of std::clock, this difference appears to be in milliseconds
-  	// and not in clock cycles.
-  	if (false){ //(double)(this_time - last_time) > (3000)) {
-  		// Time to check for new parameters
-  		std::cout << "Checking for new parameters" << std::endl;
-		std::ifstream inFile;
-		const char *c = config_path.c_str();
-		inFile.open(c);
-		if (!inFile) {
-			std::cerr << "Something's fucked, boys";
-			exit(1);
-		}
+  // 	if (false){ //(double)(this_time - last_time) > (3000)) {
+  // 		// Time to check for new parameters
+  // 		std::cout << "Checking for new parameters" << std::endl;
+		// std::ifstream inFile;
+		// const char *c = config_path.c_str();
+		// inFile.open(c);
+		// if (!inFile) {
+		// 	std::cerr << "Something's fucked, boys";
+		// 	exit(1);
+		// }
 
-		inFile >> x;
-		inFile >> y;
+		// inFile >> x;
+		// inFile >> y;
 
-		_delay = Timestamp(x);
-		_stddev = y;
-		std::normal_distribution<double> distribution(0, _stddev);
+		// _delay = Timestamp(x);
+		// _stddev = y;
+		// std::normal_distribution<double> distribution(2, _stddev);
 
-		inFile.close();
+		// inFile.close();
 
-  		last_time = this_time;
-  	}
+  // 		last_time = this_time;
+  // 	}
 
   	// Get a new packet and set a timestamp delay seconds from now.
-    if (!_p && (_p = input(0).pull())) {
+
+    //if (!_p && (_p = input(0).pull())) {
+
+    if ((_p = input(0).pull())) {
 
     	// std::cout << "Just got a new packet!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 
@@ -150,29 +151,39 @@ BadrouterDelay::run_task(Task *)
 	    }
 
 	    double sample = distribution(generator);
-
+	    if (sample < 0) {
+	    	sample = 0;
+	    }
 	    //std::cout << sample << std::endl;
 		_p->timestamp_anno() += Timestamp(sample);
-
-		// at this point put the packet in our buffer
+		_delayed_packets.push_back(_p);
     }
 
-    // Instead of doing if(_P) we should do if(buffer not empty) and then perform this operation
-    // for every element in the buffer
-
-    // instead of goto retry when we push something, goto retry
-    if (_p) {
-
+  //   if (_delayed_packets.size() > 0) {
+  //   	std::cout << _delayed_packets.size() << std::endl;
 		Timestamp now = Timestamp::now();
+		// int index = 0;
+		// // get nearest timestamp in _delayed_packets
+		// Packet *soonest_packet = _delayed_packets[0];
+		// for (int i = 0; i < _delayed_packets.size(); i++) {
+		// 	Packet* _pnew = _delayed_packets[i];
+		// 	if (_pnew->timestamp_anno() < soonest_packet->timestamp_anno()) {
+		// 		soonest_packet = _pnew;
+		// 		index = i;
+		// 	}
+		// }
 
-		if (_p->timestamp_anno() <= now) {
-	    	// packet ready for output
-	    	output(0).push(_p);
-	    	_p = 0;
-	    	worked = true;
-	    	goto retry;
+    	for (int i = 0; i < _delayed_packets.size(); i++) {
+    		Packet *this_packet = _delayed_packets[i];
+			if (this_packet->timestamp_anno() <= now) {
+		    	// packet ready for output
+		    	output(0).push(this_packet);
+		    	// std::cout << i << std::endl;
+		    	_delayed_packets.erase(_delayed_packets.begin() + i);
+		    	worked = true;
+		    	// return true;
+			}
 		}
-
 		// This section coordinates sending the packet at the scheduled time.
 		// If the packet is to be sent very soon (within one Timer::adjustment)
 		// then we just reschedule our task (poll the CPU) until it's time to send.
@@ -180,21 +191,21 @@ BadrouterDelay::run_task(Task *)
 		// If the delta is large, we set a timer to wake the task up closer to
 		// the scheduled send time.
 
-		Timestamp expiry = _p->timestamp_anno() - Timer::adjustment();
-		if (expiry <= now)
-	    // small delta, reschedule Task
-	    /* Task rescheduled below */;
-		else {
-	    // large delta, schedule Timer
-	    	_timer.schedule_at(expiry);
-	    	return false;		// without rescheduling
-		}
-    } else {
-	// no Packet available
-		if (!_signal) {
-	 	   return false;		// without rescheduling
-		}
-    }
+	// 	Timestamp expiry = soonest_packet->timestamp_anno() - Timer::adjustment();
+	// 	if (expiry <= now)
+	//     // small delta, reschedule Task
+	//     /* Task rescheduled below */
+	// 	else {
+	//     // large delta, schedule Timer
+	//     	_timer.schedule_at(expiry);
+	//     	return false;		// without rescheduling
+	// 	}
+ //    } else {
+	// // no Packet available
+	// 	if (!_signal) {
+	//  	   return false;		// without rescheduling
+	// 	}
+ //    }
 
     _task.fast_reschedule();
     return worked;

@@ -4,6 +4,7 @@
 #include <click/task.hh>
 #include <click/timer.hh>
 #include <click/notifier.hh>
+#include <vector>
 CLICK_DECLS
 
 /*
@@ -56,6 +57,9 @@ class BadrouterDelay : public Element { public:
     Packet *_p;
     Timestamp _delay;
     double _stddev;
+    std::vector<Packet*> _delayed_packets;
+
+
     String _delay_string;
     String _stddev_string;
     String _config_path;
